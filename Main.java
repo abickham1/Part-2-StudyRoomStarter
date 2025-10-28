@@ -11,8 +11,7 @@ public class Main {
     static int numBio = 0;  //Keep track of the number of Bio majors in the room
     static int numCS = 0;   //Keep track of the number of CS majors in the room
 
-    public static class BioStudent extends Thread
-    {
+    public static class BioStudent extends Thread {
         String name;
 
         public BioStudent(String n)
@@ -20,9 +19,23 @@ public class Main {
             name = n;
         }
 
-        public void run()
-        {
+        public void run(){
             //Request to enter room
+            try {
+                // Wait until no CS students are in the room
+                lockStudent.acquire();
+
+                mutexBio.acquire();
+                if (numBio == 0) { // first bio student blocks CS
+                    // CS students will wait
+                }
+                numBio++;
+                mutexBio.release();
+
+                lockStudent.release();
+
+                // Acquire room capacity
+                room.acquire();
 
             //Enter room
             System.out.println("Student " + name + " entered room...");
@@ -32,24 +45,31 @@ public class Main {
 
             //Study
             System.out.println("Student " + name + " studying...");
-            try{Thread.sleep(200);} catch (Exception e) {}
+            Thread.sleep(200);
 
             //Playing game
             System.out.println("Student " + name + " eating a snack");
-            try{Thread.sleep(400);} catch (Exception e) {}
+            Thread.sleep(400);
 
             //Packing up
             System.out.println("Student " + name + " packing up...");
 
             //Bye
             System.out.println("Student " + name + " exiting...");
+                room.release();
+
+                mutexBio.acquire();
+                numBio--;
+                mutexBio.release();
 
 
         }
+            catch(InterruptedException e){
+                e.printStackTrace();
+            }
     }
 
-    public static class CSStudent extends Thread
-    {
+    public static class CSStudent extends Thread {
         String name;
 
         public CSStudent(String n)
@@ -57,9 +77,23 @@ public class Main {
             name = n;
         }
 
-        public void run()
-        {
+        public void run() {
 
+            try {
+                // Wait until no Bio students are in the room
+                lockStudent.acquire();
+
+                mutexCS.acquire();
+                if (numCS == 0) { // first CS student blocks Bio
+                    // Bio students will wait
+                }
+                numCS++;
+                mutexCS.release();
+
+                lockStudent.release();
+
+                // Acquire room capacity
+                room.acquire();
             //Enter room
             System.out.println("Student " + name + " entered room...");
 
@@ -68,23 +102,40 @@ public class Main {
 
             //Study
             System.out.println("Student " + name + " studying...");
-            try{Thread.sleep(200);} catch (Exception e) {}
+            Thread.sleep(200);
 
             //Playing game
             System.out.println("Student " + name + " playing the Xbox One");
-            try{Thread.sleep(400);} catch (Exception e) {}
+            Thread.sleep(400);
 
             //Packing up
             System.out.println("Student " + name + " packing up...");
 
             //Bye
             System.out.println("Student " + name + " exiting...");
+            room.release();
 
+                mutexCS.acquire();
+                numCS--;
+                mutexCS.release();
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
         }
     }
     public static void main(String[] args) {
-        BioStudent b1 = new BioStudent("Bio1");
+        for (int i = 1; i <= 20; i++) {
+            new BioStudent("Bio" + i).start();
+        }
+
+        // Create 20 CS students
+        for (int i = 1; i <= 20; i++) {
+            new CSStudent("CS" + i).start();
+        }
+
+        /*BioStudent b1 = new BioStudent("Bio1");
         BioStudent b2 = new BioStudent("Bio2");
         BioStudent b3 = new BioStudent("Bio3");
         BioStudent b4 = new BioStudent("Bio4");
@@ -128,6 +179,7 @@ public class Main {
         cs3.start();
         cs4.start();
         cs5.start();
-        b3.start();
+        b3.start();*/
+    }
     }
 }
